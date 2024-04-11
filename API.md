@@ -128,7 +128,7 @@ Runs the VRP solver asynchronously to search for a solution.
 - `numVehicles` **[Number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)** The number of vehicles for servicing nodes.
 - `depotNode` **[Number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)** The depot node index in the range `[0, numNodes - 1]` where all vehicles start and end at.
 - `timeHorizon` **[Number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)** The last time point the solver uses for time constraints. The solver starts from time point `0` (you can think of this as the start of the work day) and ends at `timeHorizon` (you can think of this as the end of the work day).
-- `vehicleCapacity` **[Number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)** The maximum capacity for goods each vehicle can carry. Demand at nodes decrease the capacity.
+- `vehicleCapacity` **[Number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)** Array of maximum capacities per vehicle. Demand at nodes decrease the capacity.
 - `routeLocks` **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)** Route locks array the solver uses for locking (sub-) routes into place, per vehicle. Two-dimensional with `routeLocks[vehicle]` being an **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)** with node indices `vehicle` has to visit in order. Can be empty. Must not contain the depots.
 - `pickups` **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)** with node indices for picking up good. The corresponding delivery node index is in the `deliveries` **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)** at the same position (parallel arrays). For a pair of pickup and delivery indices: pickup location comes before the corresponding delivery location and is served by the same vehicle.
 - `deliveries` **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)** with node indices for delivering picked up goods. The corresponding pickup node index is in the `pickups` **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)** at the same position (parallel arrays). For a pair of pickup and delivery indices: pickup location comes before the corresponding delivery location and is served by the same vehicle.
@@ -141,7 +141,7 @@ var vrpSearchOpts = {
   numVehicles: 3,
   depotNode: depotNode,
   timeHorizon: 9 * 60 * 60,
-  vehicleCapacity: 3,
+  vehicleCapacity: [3,4,1],
   routeLocks: [[], [3, 4], []],
   pickups: [4, 9],
   deliveries: [12, 8]
@@ -165,7 +165,7 @@ VRP.Solve(vrpSearchOpts, function (err, solution) {
 ```javascript
 { cost: 90,
   routes: [ [ 4, 5, 9 ], [ 3, 7, 8 ], [ 1, 2, 6 ] ],
-  times: 
+  times:
    [ [ [ 2700, 3600 ], [ 8400, 9300 ], [ 17100, 18000 ] ],
      [ [ 2100, 2400 ], [ 8400, 8700 ], [ 17700, 18000 ] ],
      [ [ 900, 10800 ], [ 3000, 12900 ], [ 8100, 18000 ] ] ]}

@@ -12,10 +12,13 @@
 #include <utility>
 #include <vector>
 
+#include "ortools/constraint_solver/routing.h"
+
 struct RoutingSolution {
   std::int64_t cost;
   std::vector<std::vector<NodeIndex>> routes;
   std::vector<std::vector<Interval>> times;
+  std::vector<std::vector<int64_t>> costDetails;
 };
 
 struct VRPWorker final : Nan::AsyncWorker {
@@ -32,7 +35,7 @@ struct VRPWorker final : Nan::AsyncWorker {
             std::int32_t numVehicles_,                        //
             std::int32_t vehicleDepot_,                       //
             std::int32_t timeHorizon_,                        //
-            std::int32_t vehicleCapacity_,                    //
+            std::vector<int64> vehicleCapacities_,              //   type changed to vector int64
             RouteLocks routeLocks_,                           //
             Pickups pickups_,                                 //
             Deliveries deliveries_)                           //
@@ -47,7 +50,7 @@ struct VRPWorker final : Nan::AsyncWorker {
         numVehicles{numVehicles_},
         vehicleDepot{vehicleDepot_},
         timeHorizon{timeHorizon_},
-        vehicleCapacity{vehicleCapacity_},
+        vehicleCapacities{std::move(vehicleCapacities_)},
         routeLocks{std::move(routeLocks_)},
         pickups{std::move(pickups_)},
         deliveries{std::move(deliveries_)},
@@ -122,8 +125,9 @@ struct VRPWorker final : Nan::AsyncWorker {
 
     const static auto kDimensionCapacity = "capacity";
 
-    model.AddDimension(demandCallback, /*slack=*/0, vehicleCapacity, /*fix_start_cumul_to_zero=*/true, kDimensionCapacity);
-    // const auto& capacityDimension = model.GetDimensionOrDie(kDimensionCapacity);
+    //function for handling different capacitated vehicles
+    model.AddDimensionWithVehicleCapacity(demandCallback, /*slack=*/0, vehicleCapacities, /*fix_start_cumul_to_zero=*/true, kDimensionCapacity);
+
 
     // Pickup and Deliveries
 
@@ -184,7 +188,23 @@ struct VRPWorker final : Nan::AsyncWorker {
       times.push_back(std::move(routeTimes));
     }
 
-    solution = RoutingSolution{cost, std::move(routes), std::move(times)};
+
+    std::vector<std::vector<int64_t>> costDetails;
+
+      for (int vehicle_id = 0; vehicle_id < numVehicles; ++vehicle_id) {
+        std::vector<int64_t> routeCosts;
+        int64_t index = model.Start(vehicle_id);
+        std::stringstream route;
+        while (!model.IsEnd(index)) {
+          const int64_t previous_index = index;
+          index = assignment->Value(model.NextVar(index));
+          const auto _cost = model.GetArcCostForVehicle(previous_index, index, int64_t{vehicle_id});
+          routeCosts.push_back(_cost);
+        }
+        costDetails.push_back(std::move(routeCosts));
+      }
+
+    solution = RoutingSolution{cost, std::move(routes), std::move(times), std::move(costDetails)};
   }
 
   void HandleOKCallback() override {
@@ -195,6 +215,7 @@ struct VRPWorker final : Nan::AsyncWorker {
     auto jsCost = Nan::New<v8::Number>(solution.cost);
     auto jsRoutes = Nan::New<v8::Array>(solution.routes.size());
     auto jsTimes = Nan::New<v8::Array>(solution.times.size());
+    auto jsCostDetails = Nan::New<v8::Array>(solution.costDetails.size());
 
     for (std::size_t i = 0; i < solution.routes.size(); ++i) {
       const auto& route = solution.routes[i];
@@ -218,9 +239,22 @@ struct VRPWorker final : Nan::AsyncWorker {
       Nan::Set(jsTimes, i, jsNodeTimes);
     }
 
+
+    for (std::size_t i = 0; i < solution.costDetails.size(); ++i) {
+          const auto& costDetail = solution.costDetails[i];
+          auto jsNodeCostDetails = Nan::New<v8::Array>(costDetail.size());
+
+          for (std::size_t j = 0; j < costDetail.size(); ++j) {
+            Nan::Set(jsNodeCostDetails, j, Nan::New<v8::Number>(costDetail[j]));
+          }
+
+          Nan::Set(jsCostDetails, i, jsNodeCostDetails);
+        }
+
     Nan::Set(jsSolution, Nan::New("cost").ToLocalChecked(), jsCost);
     Nan::Set(jsSolution, Nan::New("routes").ToLocalChecked(), jsRoutes);
     Nan::Set(jsSolution, Nan::New("times").ToLocalChecked(), jsTimes);
+    Nan::Set(jsSolution, Nan::New("costDetails").ToLocalChecked(), jsCostDetails);
 
     const auto argc = 2u;
     v8::Local<v8::Value> argv[argc] = {Nan::Null(), jsSolution};
@@ -238,7 +272,7 @@ struct VRPWorker final : Nan::AsyncWorker {
   std::int32_t numVehicles;
   std::int32_t vehicleDepot;
   std::int32_t timeHorizon;
-  std::int32_t vehicleCapacity;
+  std::vector<int64> vehicleCapacities;
 
   const RouteLocks routeLocks;
 

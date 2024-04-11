@@ -93,7 +93,7 @@ NAN_METHOD(VRP::Solve) try {
                                numVehicles,                            //
                                userParams.depotNode,                   //
                                userParams.timeHorizon,                 //
-                               userParams.vehicleCapacity,             //
+                               userParams.vehicleCapacities,           //
                                std::move(userParams.routeLocks),       //
                                std::move(userParams.pickups),          //
                                std::move(userParams.deliveries)};      //
