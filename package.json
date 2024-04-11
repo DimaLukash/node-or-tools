@@ -2,10 +2,10 @@
   "name": "node_or_tools",
   "version": "1.2.0",
   "description": "Native module for the or-tools TSP / VRP solvers",
-  "url": "https://github.com/mapbox/node-or-tools",
+  "url": "https://github.com/DimaLukash/node-or-tools",
   "repository": {
     "type": "git",
-    "url": "git@github.com:mapbox/node-or-tools.git"
+    "url": "git@github.com:DimaLukash/node-or-tools.git"
   },
   "keywords": [
     "addon",
