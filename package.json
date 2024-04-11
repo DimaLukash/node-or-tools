@@ -1,6 +1,6 @@
 {
   "name": "node_or_tools",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Native module for the or-tools TSP / VRP solvers",
   "url": "https://github.com/DimaLukash/node-or-tools",
   "repository": {
